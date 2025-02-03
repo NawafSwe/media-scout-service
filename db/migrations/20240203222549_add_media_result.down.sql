@@ -1,0 +1,3 @@
+BEGIN;
+DROP TABLE IF NOT EXIST meda_result;
+COMMIT;

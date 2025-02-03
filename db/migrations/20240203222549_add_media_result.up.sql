@@ -1,0 +1,9 @@
+BEGIN;
+CREATE TABLE IF NOT EXISTS media_result (
+    id BIGSERIAL PRIMARY KEY,
+    search_term VARCHAR,
+    returned_result JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+COMMIT;
