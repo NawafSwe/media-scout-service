@@ -1,0 +1,16 @@
+FROM golang:1.22.3-alpine AS builder
+
+WORKDIR /app
+# copy soruce code
+COPY go.mod go.sum ./
+RUN go mod download
+
+RUN apk --update add curl git openssh
+
+RUN apk add --no-cache git gcc musl-dev
+
+RUN go get -u github.com/rakyll/gotest@latest
+
+RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
+ENV GO111MODULE=on GOOS=linux CGO_ENABLED=0 GOFLAGS="-buildvcs=false"

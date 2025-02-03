@@ -1,0 +1,60 @@
+version: "3.8"
+
+services:
+  builder:
+    container_name: media-scout-app
+    build:
+      context: .
+      dockerfile: Dockerfile-builder
+    working_dir: /app
+    env_file:
+      - .env
+    tty: true
+    volumes:
+      - .:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3001:3001"
+    networks:
+      - media_scout
+
+  migrate:
+    container_name: migrate
+    image: migrate/migrate:v4.17.1
+    volumes:
+      - ./db/migrations:/migrations
+    command: [ "-path", "/migrations", "-database",  "postgres://postgres@postgres:5432/media_scout_db?sslmode=disable&search_path=public", "up" ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - media_scout
+  postgres:
+    container_name: media-scout-db
+    image: postgres:15.3-alpine
+    volumes:
+      - "postgres-data:/var/lib/postgresql/data"
+      - "./db/initdb.d/:/docker-entrypoint-initdb.d/"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d media_scout_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_USER: postgres
+      POSTGRES_DB: media_scout_db
+    stop_signal: SIGKILL
+    ports:
+      - "5432:5432"
+    networks:
+      - media_scout
+
+
+networks:
+  media_scout:
+    driver: bridge
+
+volumes:
+  postgres-data:
