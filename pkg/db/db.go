@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+
 	"github.com/NawafSwe/media-scout-service/cmd/config"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // Import the PostgreSQL driver

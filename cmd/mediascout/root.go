@@ -3,6 +3,7 @@ package mediascout
 import (
 	"context"
 	"fmt"
+
 	"github.com/NawafSwe/media-scout-service/cmd/config"
 	"github.com/NawafSwe/media-scout-service/pkg/worker"
 	"github.com/jmoiron/sqlx"

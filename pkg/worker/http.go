@@ -3,7 +3,6 @@ package worker
 import (
 	"context"
 	"fmt"
-	"github.com/NawafSwe/media-scout-service/cmd/config"
 	"log/slog"
 	"net"
 	"net/http"
@@ -11,9 +10,17 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/gorilla/mux"
-
+	"github.com/NawafSwe/media-scout-service/cmd/config"
+	"github.com/NawafSwe/media-scout-service/pkg/clients/itunes"
+	"github.com/NawafSwe/media-scout-service/pkg/internal/business"
+	"github.com/NawafSwe/media-scout-service/pkg/internal/repository/mediadb"
+	"github.com/NawafSwe/media-scout-service/pkg/internal/repository/mediafetcher"
 	"github.com/NawafSwe/media-scout-service/pkg/logging"
+	"github.com/NawafSwe/media-scout-service/pkg/transport"
+	kithttptransport "github.com/NawafSwe/media-scout-service/pkg/transport/http"
+	"github.com/go-kit/kit/endpoint"
+	kithttp "github.com/go-kit/kit/transport/http"
+	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -82,8 +89,11 @@ func (h *HTTPWorker) SIGINT() {
 }
 
 func (h *HTTPWorker) registerHandlers() {
-	r := h.router.PathPrefix("/api").Subrouter()
+	r := h.router.PathPrefix("").Subrouter()
 	r.HandleFunc("/health", h.healthHandler).Methods(http.MethodGet)
+	v1APIs := r.PathPrefix("/api/v1").Subrouter()
+
+	v1APIs.Handle("/media/search", makeSearchMediaHandler(h.db, h.lgr)).Methods(http.MethodGet)
 }
 
 func (h *HTTPWorker) healthHandler(r http.ResponseWriter, _ *http.Request) {
@@ -94,4 +104,20 @@ func (h *HTTPWorker) healthHandler(r http.ResponseWriter, _ *http.Request) {
 	}
 	r.WriteHeader(http.StatusOK)
 	_, _ = r.Write([]byte(fmt.Sprintf("%s is healthy", config.ServiceName)))
+}
+
+// makeSearchMediaHandler function to return http handler for search media.
+func makeSearchMediaHandler(db *sqlx.DB, lgr logging.Logger, middlewares ...endpoint.Middleware) http.Handler {
+	itunesClient := itunes.NewClient()
+	mediaFetcher := mediafetcher.NewMediaFetcher(itunesClient)
+	mediaDBRepo := mediadb.NewMediaRepository(db)
+	handler := business.NewSearchMediaHandler(mediaDBRepo, mediaFetcher, lgr)
+	ep := transport.MakeSearchMediaEndpoint(handler)
+	// applying middlewares, if any.
+	if middlewares != nil {
+		for _, m := range middlewares {
+			ep = m(ep)
+		}
+	}
+	return kithttp.NewServer(ep, kithttptransport.DecodeSearchMediaRequest, kithttptransport.EncodeSearchMediaResponse)
 }

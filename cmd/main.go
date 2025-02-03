@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
+	"log"
+
 	"github.com/NawafSwe/media-scout-service/cmd/config"
 	"github.com/NawafSwe/media-scout-service/cmd/mediascout"
 	"github.com/NawafSwe/media-scout-service/pkg/db"
-	"log"
 )
 
 func main() {
