@@ -44,6 +44,7 @@ type MediaResult struct {
 	ResultCount int
 }
 
+//go:generate mockgen -source=search_media.go -destination=mock/search_media.go -package=mock
 type (
 	// mediaRepository defines the interface for media repository operations.
 	mediaRepository interface {
