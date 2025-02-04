@@ -61,7 +61,7 @@ func (h *HTTPWorker) Run(ctx context.Context) error {
 	h.registerHandlers()
 	srv := http.Server{
 		Addr:    fmt.Sprintf(":%d", h.port),
-		Handler: h.router,
+		Handler: enableCORS(h.router),
 	}
 	h.srv = &srv
 
@@ -120,4 +120,20 @@ func makeSearchMediaHandler(db *sqlx.DB, lgr logging.Logger, middlewares ...endp
 		}
 	}
 	return kithttp.NewServer(ep, kithttptransport.DecodeSearchMediaRequest, kithttptransport.EncodeSearchMediaResponse)
+}
+
+func enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*") // Allow all origins
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		// Handle preflight requests
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }

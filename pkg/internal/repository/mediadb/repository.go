@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql/driver"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -44,18 +43,28 @@ type Media struct {
 	Genres                 []string `json:"genres"`
 }
 
-// Scan implements the sql.Scanner interface for Media.
-func (m *Media) Scan(value any) error {
-	bytes, ok := value.([]byte)
-	if !ok {
-		return errors.New("type assertion to []byte failed")
-	}
+type Medias []Media
 
-	return json.Unmarshal(bytes, m)
+// Scan implements the sql.Scanner interface for Medias.
+//
+// for more details see https://stackoverflow.com/questions/41375563/unsupported-scan-storing-driver-value-type-uint8-into-type-string
+func (m *Medias) Scan(src any) error {
+	if src == nil {
+		*m = Medias{} // Make sure it's initialized if NULL was stored.
+		return nil
+	}
+	v, ok := src.([]byte)
+	if !ok {
+		return fmt.Errorf("invalid data received, expected []byte got %T", src)
+	}
+	if err := json.Unmarshal(v, m); err != nil {
+		return fmt.Errorf("failed to unmarshal JSON from bytes: %w", err)
+	}
+	return nil
 }
 
-// Value implements the driver.Valuer interface for Media.
-func (m Media) Value() (driver.Value, error) {
+// Value implements the driver.Valuer interface for Medias.
+func (m *Medias) Value() (driver.Value, error) {
 	return json.Marshal(m)
 }
 
@@ -63,7 +72,7 @@ func (m Media) Value() (driver.Value, error) {
 type MediaResult struct {
 	ID          int64     `db:"id"`
 	SearchTerm  string    `db:"search_term"`
-	Media       []Media   `db:"returned_result"` // JSONB field
+	Media       Medias    `db:"returned_result"` // JSONB field
 	ResultCount int       `db:"result_count"`
 	CreatedAt   time.Time `db:"created_at"`
 	UpdatedAt   time.Time `db:"updated_at"`
@@ -122,7 +131,7 @@ func mapBusinessToDBModel(media business.MediaResult) MediaResult {
 // InsertMedia inserts a new media result into the database.
 func (repo *MediaRepositoryImpl) InsertMedia(ctx context.Context, media business.MediaResult) (int64, error) {
 	dbMedia := mapBusinessToDBModel(media)
-	mediaResult, err := json.Marshal(media.Media)
+	mediaResult, err := json.Marshal(dbMedia.Media)
 	if err != nil {
 		return 0, fmt.Errorf("failed to marshal media result: %w", err)
 	}
@@ -136,5 +145,31 @@ func (repo *MediaRepositoryImpl) InsertMedia(ctx context.Context, media business
 	if err = repo.db.QueryRowContext(ctx, query, dbMedia.SearchTerm, mediaResult, time.Now().UTC(), time.Now().UTC()).Scan(&id); err != nil {
 		return 0, fmt.Errorf("failed to insert media to db: %w", err)
 	}
+	// write a func to query back result and print
+	fmt.Println("here printed")
+	err = repo.QueryAndPrintMediaResults(ctx)
+	fmt.Println("QueryAndPrintMediaResults err => ", err)
 	return id, nil
+}
+
+// QueryAndPrintMediaResults queries the media results from the database and prints them.
+func (repo *MediaRepositoryImpl) QueryAndPrintMediaResults(ctx context.Context) error {
+	query := `
+		SELECT id, search_term, returned_result, created_at, updated_at
+		FROM media_result
+	`
+	var results []MediaResult
+	if err := repo.db.SelectContext(ctx, &results, query); err != nil {
+		return fmt.Errorf("failed to query media results: %w", err)
+	}
+	fmt.Println("here results => ", results)
+	for _, result := range results {
+		mediaJSON, err := json.Marshal(result)
+		if err != nil {
+			return fmt.Errorf("failed to marshal media result: %w", err)
+		}
+		fmt.Println(string(mediaJSON))
+	}
+
+	return nil
 }
