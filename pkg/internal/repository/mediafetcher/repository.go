@@ -1,6 +1,7 @@
 package mediafetcher
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/NawafSwe/media-scout-service/pkg/clients/itunes"
@@ -8,18 +9,25 @@ import (
 	"github.com/samber/lo"
 )
 
+//go:generate mockgen -source=repository.go -destination=mock/repository.go -package=mock
+type (
+	searcherClient interface {
+		Search(ctx context.Context, term string, limit int) (itunes.SearchResponse, error)
+	}
+)
+
 // MediaFetcher is a service that fetches media from iTunes.
 type MediaFetcher struct {
-	client *itunes.Client
+	client searcherClient
 }
 
 // NewMediaFetcher creates a new instance of MediaFetcherService.
-func NewMediaFetcher(client *itunes.Client) *MediaFetcher {
+func NewMediaFetcher(client searcherClient) *MediaFetcher {
 	return &MediaFetcher{client: client}
 }
 
-func (s *MediaFetcher) FetchMediaByTerm(term string, limit int) (business.MediaResult, error) {
-	response, err := s.client.Search(term, limit)
+func (s *MediaFetcher) FetchMediaByTerm(ctx context.Context, term string, limit int) (business.MediaResult, error) {
+	response, err := s.client.Search(ctx, term, limit)
 	if err != nil {
 		return business.MediaResult{}, fmt.Errorf("failed to fetch media by term: %w", err)
 	}

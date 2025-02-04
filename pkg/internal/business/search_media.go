@@ -51,7 +51,7 @@ type (
 	}
 	// mediaFetcher defines the interface for fetching media.
 	mediaFetcher interface {
-		FetchMediaByTerm(term string, limit int) (MediaResult, error)
+		FetchMediaByTerm(ctx context.Context, term string, limit int) (MediaResult, error)
 	}
 	// logger logging error.
 	logger interface {
@@ -73,7 +73,7 @@ func NewSearchMediaHandler(repo mediaRepository, fetcher mediaFetcher, lgr logge
 // FetchAndInsertMedia fetches media by term, inserts it into the repository, and returns the result.
 func (h SearchMediaHandler) FetchAndInsertMedia(ctx context.Context, term string, limit int) (MediaResult, error) {
 	// Fetch media by term
-	mediaResult, err := h.fetcher.FetchMediaByTerm(term, limit)
+	mediaResult, err := h.fetcher.FetchMediaByTerm(ctx, term, limit)
 	if err != nil {
 		h.lgr.ErrorContext(ctx, "failed to fetch media", "error", err)
 		return MediaResult{}, fmt.Errorf("failed to fetch media: %w", err)

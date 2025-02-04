@@ -1,6 +1,7 @@
 package itunes
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -56,9 +57,14 @@ func NewClient() *Client {
 }
 
 // Search fetches media items from the iTunes API based on the search term.
-func (c *Client) Search(term string, limit int) (SearchResponse, error) {
+func (c *Client) Search(ctx context.Context, term string, limit int) (SearchResponse, error) {
 	url := fmt.Sprintf("https://itunes.apple.com/search?term=%s&limit=%d", term, limit)
-	resp, err := c.httpClient.Get(url)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return SearchResponse{}, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return SearchResponse{}, fmt.Errorf("failed to fetch data from iTunes API: %w", err)
 	}
