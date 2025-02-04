@@ -145,31 +145,6 @@ func (repo *MediaRepositoryImpl) InsertMedia(ctx context.Context, media business
 	if err = repo.db.QueryRowContext(ctx, query, dbMedia.SearchTerm, mediaResult, time.Now().UTC(), time.Now().UTC()).Scan(&id); err != nil {
 		return 0, fmt.Errorf("failed to insert media to db: %w", err)
 	}
-	// write a func to query back result and print
-	fmt.Println("here printed")
-	err = repo.QueryAndPrintMediaResults(ctx)
-	fmt.Println("QueryAndPrintMediaResults err => ", err)
+
 	return id, nil
-}
-
-// QueryAndPrintMediaResults queries the media results from the database and prints them.
-func (repo *MediaRepositoryImpl) QueryAndPrintMediaResults(ctx context.Context) error {
-	query := `
-		SELECT id, search_term, returned_result, created_at, updated_at
-		FROM media_result
-	`
-	var results []MediaResult
-	if err := repo.db.SelectContext(ctx, &results, query); err != nil {
-		return fmt.Errorf("failed to query media results: %w", err)
-	}
-	fmt.Println("here results => ", results)
-	for _, result := range results {
-		mediaJSON, err := json.Marshal(result)
-		if err != nil {
-			return fmt.Errorf("failed to marshal media result: %w", err)
-		}
-		fmt.Println(string(mediaJSON))
-	}
-
-	return nil
 }
