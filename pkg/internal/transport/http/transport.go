@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/NawafSwe/media-scout-service/pkg/internal/transport"
 	"net/http"
 	"strconv"
-
-	"github.com/NawafSwe/media-scout-service/pkg/transport"
 )
 
 // DecodeSearchMediaRequest function decodes search media request.

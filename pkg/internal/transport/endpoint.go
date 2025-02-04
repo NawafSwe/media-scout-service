@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 )
 
+//go:generate mockgen -source=endpoint.go -destination=mock/endpoint.go -package=mock
 type handler interface {
 	FetchAndInsertMedia(ctx context.Context, term string, limit int) (business.MediaResult, error)
 }

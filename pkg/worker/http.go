@@ -3,6 +3,8 @@ package worker
 import (
 	"context"
 	"fmt"
+	"github.com/NawafSwe/media-scout-service/pkg/internal/transport"
+	kithttptransport "github.com/NawafSwe/media-scout-service/pkg/internal/transport/http"
 	"log/slog"
 	"net"
 	"net/http"
@@ -16,8 +18,6 @@ import (
 	"github.com/NawafSwe/media-scout-service/pkg/internal/repository/mediadb"
 	"github.com/NawafSwe/media-scout-service/pkg/internal/repository/mediafetcher"
 	"github.com/NawafSwe/media-scout-service/pkg/logging"
-	"github.com/NawafSwe/media-scout-service/pkg/transport"
-	kithttptransport "github.com/NawafSwe/media-scout-service/pkg/transport/http"
 	"github.com/go-kit/kit/endpoint"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
