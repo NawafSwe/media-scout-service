@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/sdk/trace"
 	"net/http"
 )
 
@@ -50,9 +52,12 @@ type Client struct {
 }
 
 // NewClient creates a new iTunes API client.
-func NewClient() *Client {
+func NewClient(tracer *trace.TracerProvider) *Client {
+	otelTransport := otelhttp.NewTransport(nil, otelhttp.WithTracerProvider(tracer))
 	return &Client{
-		httpClient: http.Client{},
+		httpClient: http.Client{
+			Transport: otelTransport,
+		},
 	}
 }
 

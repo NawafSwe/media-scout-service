@@ -41,3 +41,4 @@ google_service_account.json
 ddagent-install.log
 logs
 .DS_Store
+otel-collector-config.yaml

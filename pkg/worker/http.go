@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/NawafSwe/media-scout-service/pkg/internal/transport"
 	kithttptransport "github.com/NawafSwe/media-scout-service/pkg/internal/transport/http"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/sdk/trace"
 	"log/slog"
 	"net"
 	"net/http"
@@ -31,13 +33,14 @@ type HTTPWorker struct {
 	db      *sqlx.DB
 	lgr     logging.Logger
 	port    int
+	tracer  *trace.TracerProvider
 	router  *mux.Router
 	srv     *http.Server
 	signals chan os.Signal
 }
 
 // NewHTTPWorker function creates http worker.
-func NewHTTPWorker(cfg config.Config, db *sqlx.DB, name string) (*HTTPWorker, error) {
+func NewHTTPWorker(cfg config.Config, tracer *trace.TracerProvider, db *sqlx.DB, name string) (*HTTPWorker, error) {
 	handler := slog.NewJSONHandler(os.Stdout, nil)
 	lgr := slog.New(handler)
 	lgrWithAttrs := lgr.With("service", name)
@@ -46,6 +49,7 @@ func NewHTTPWorker(cfg config.Config, db *sqlx.DB, name string) (*HTTPWorker, er
 		Name:    name,
 		lgr:     lgrWithAttrs,
 		db:      db,
+		tracer:  tracer,
 		port:    cfg.HTTP.Port,
 		router:  mux.NewRouter(),
 		signals: make(chan os.Signal, 1),
@@ -90,10 +94,9 @@ func (h *HTTPWorker) SIGINT() {
 
 func (h *HTTPWorker) registerHandlers() {
 	r := h.router.PathPrefix("").Subrouter()
-	r.HandleFunc("/health", h.healthHandler).Methods(http.MethodGet)
+	r.Handle("/health", otelhttp.NewHandler(http.HandlerFunc(h.healthHandler), "health")).Methods(http.MethodGet)
 	v1APIs := r.PathPrefix("/api/v1").Subrouter()
-
-	v1APIs.Handle("/media/search", makeSearchMediaHandler(h.db, h.lgr)).Methods(http.MethodGet)
+	v1APIs.Handle("/media/search", otelhttp.NewHandler(makeSearchMediaHandler(h.db, h.tracer, h.lgr), "search.media")).Methods(http.MethodGet)
 }
 
 func (h *HTTPWorker) healthHandler(r http.ResponseWriter, _ *http.Request) {
@@ -107,8 +110,8 @@ func (h *HTTPWorker) healthHandler(r http.ResponseWriter, _ *http.Request) {
 }
 
 // makeSearchMediaHandler function to return http handler for search media.
-func makeSearchMediaHandler(db *sqlx.DB, lgr logging.Logger, middlewares ...endpoint.Middleware) http.Handler {
-	itunesClient := itunes.NewClient()
+func makeSearchMediaHandler(db *sqlx.DB, tracer *trace.TracerProvider, lgr logging.Logger, middlewares ...endpoint.Middleware) http.Handler {
+	itunesClient := itunes.NewClient(tracer)
 	mediaFetcher := mediafetcher.NewMediaFetcher(itunesClient)
 	mediaDBRepo := mediadb.NewMediaRepository(db)
 	handler := business.NewSearchMediaHandler(mediaDBRepo, mediaFetcher, lgr)

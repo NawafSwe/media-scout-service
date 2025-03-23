@@ -9,11 +9,18 @@ import (
 
 const ServiceName = "media-scout"
 
-type General struct {
-	ServiceName    string `mapstructure:"SERVICE_NAME"`
-	TlsEnabled     bool   `mapstructure:"TLS_ENABLED"`
-	LoggingEnabled bool   `mapstructure:"LOGGING_ENABLED"`
+type Tracing struct {
+	ReceiverEndpoint string `mapstructure:"RECEIVER_ENDPOINT"`
 }
+type General struct {
+	ServiceName    string  `mapstructure:"SERVICE_NAME"`
+	AppVersion     string  `mapstructure:"APP_VERSION"`
+	AppEnvironment string  `mapstructure:"APP_ENVIRONMENT"`
+	Tracing        Tracing `mapstructure:"TRACING"`
+	TlsEnabled     bool    `mapstructure:"TLS_ENABLED"`
+	LoggingEnabled bool    `mapstructure:"LOGGING_ENABLED"`
+}
+
 type Config struct {
 	General General `mapstructure:"GENERAL,squash"`
 	HTTP    HTTP    `mapstructure:"HTTP"`
