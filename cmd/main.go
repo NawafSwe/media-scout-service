@@ -27,8 +27,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("err initializing trace, err: %v", err)
 	}
-
-	dbConn, err := db.NewDBConn(cfg.DB)
+	dbConn, err := db.NewDBConn(cfg.DB, tp)
 	if err != nil {
 		log.Fatalf("err creating db conn, err: %v", err)
 	}
