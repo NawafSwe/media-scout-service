@@ -59,6 +59,7 @@ func initTracer(cfg config.Config) (*trace.TracerProvider, error) {
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
 			semconv.ServiceNameKey.String(cfg.General.ServiceName),
+			semconv.ServiceNamespaceKey.String(cfg.General.ServiceName),
 			semconv.ServiceVersionKey.String(cfg.General.AppVersion),
 			semconv.DeploymentEnvironmentKey.String(cfg.General.AppEnvironment),
 		),

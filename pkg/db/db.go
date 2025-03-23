@@ -10,6 +10,7 @@ import (
 	"github.com/XSAM/otelsql"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // Import the PostgreSQL driver
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // NewDBConn creates a new db connection and returns *sqlx.DB.
@@ -18,7 +19,8 @@ func NewDBConn(cfg config.DB, tracer *trace.TracerProvider) (*sqlx.DB, error) {
 	if tracer != nil {
 		opts = append(opts, otelsql.WithTracerProvider(tracer), otelsql.WithSpanOptions(otelsql.SpanOptions{
 			OmitConnResetSession: true,
-		}))
+		}),
+			otelsql.WithAttributes(extractAttrsFromDSN(cfg.DSN)...))
 	}
 	db, err := otelsql.Open("postgres", cfg.DSN, opts...)
 	if err != nil {
@@ -54,4 +56,8 @@ func NewDBConn(cfg config.DB, tracer *trace.TracerProvider) (*sqlx.DB, error) {
 	connFldMod.Set(connAddr)
 
 	return sqlx.NewDb(db, "postgres"), nil
+}
+
+func extractAttrsFromDSN(dsn string) []attribute.KeyValue {
+	return otelsql.AttributesFromDSN(dsn)
 }
